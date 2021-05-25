@@ -5,7 +5,6 @@ package wxd.qst.mall.common;
  */
 public class Constants {
 
-
     public final static String FILE_UPLOAD_DIC = "D:\\projects\\IdeaProjects\\qst-mall-master2\\upload\\";//上传文件的默认url前缀，根据部署设置自行修改
     public final static int INDEX_CAROUSEL_NUMBER = 5;//首页轮播图数量(可根据自身需求修改)
     public final static int INDEX_CATEGORY_NUMBER = 10;//首页一级分类的最大数量
