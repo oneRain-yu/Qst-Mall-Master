@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="wxd.qst.mall.dao.QstMallGoodsCommentMapper">
+
+    <resultMap id="BaseResultMap" type="wxd.qst.mall.entity.GoodsComment">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="user_id" jdbcType="BIGINT" property="userId"/>
+        <result column="goods_id" jdbcType="BIGINT" property="goodsId"/>
+        <result column="parent_comment_id" jdbcType="BIGINT" property="parentCommentId"/>
+        <result column="comment_type" jdbcType="VARCHAR" property="commentType"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="deleted" jdbcType="INTEGER" property="deleted"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    </resultMap>
+
+    <resultMap id="AddGoodsNameResultMap" type="wxd.qst.mall.entity.GoodsCommentDTO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="user_id" jdbcType="BIGINT" property="userId"/>
+        <result column="user_name" jdbcType="VARCHAR" property="userName"/>
+        <result column="goods_id" jdbcType="BIGINT" property="goodsId"/>
+        <result column="goods_name" jdbcType="VARCHAR" property="goodsName"/>
+        <result column="parent_comment_id" jdbcType="BIGINT" property="parentCommentId"/>
+        <result column="comment_type" jdbcType="VARCHAR" property="commentType"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="deleted" jdbcType="INTEGER" property="deleted"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    </resultMap>
+
+    <resultMap id="mallCommentMap" type="wxd.qst.mall.controller.vo.QstMallGoodsCommentVO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="user_id" jdbcType="BIGINT" property="userId"/>
+        <result column="user_name" jdbcType="VARCHAR" property="userName"/>
+        <result column="goods_id" jdbcType="BIGINT" property="goodsId"/>
+        <result column="parent_comment_id" jdbcType="BIGINT" property="parentCommentId"/>
+        <result column="comment_type" jdbcType="VARCHAR" property="commentType"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="deleted" jdbcType="INTEGER" property="deleted"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+     id, user_id, goods_id, parent_comment_id, comment_type, content, deleted, create_time
+    </sql>
+    <insert id="insert" parameterType="wxd.qst.mall.entity.GoodsComment">
+    insert into tb_qst_mall_goods_comment (id, user_id, goods_id,
+      parent_comment_id, comment_type, content, deleted, create_time)
+    values (#{id,jdbcType=BIGINT}, #{userId,jdbcType=BIGINT}, #{goodsId,jdbcType=BIGINT},
+      #{parentCommentId,jdbcType=BIGINT}, #{commentType,jdbcType=VARCHAR}, #{content,jdbcType=VARCHAR},
+      #{deleted,jdbcType=INTEGER}, #{createTime,jdbcType=TIMESTAMP}
+      )
+   </insert>
+
+    <select id="findQstMallCommentList" parameterType="Map" resultMap="AddGoodsNameResultMap">
+        select
+         c.id as id, c.user_id as user_id, c.goods_id as goods_id, c.parent_comment_id as parent_comment_id,
+         c.comment_type as comment_type, c.content as content, c.deleted as deleted, c.create_time as create_time,
+         g.goods_name as goods_name, u.nick_name as user_name
+        from tb_qst_mall_goods_comment c left join tb_qst_mall_goods_info g on c.goods_id = g.goods_id
+        left join tb_qst_mall_user u on c.user_id = u.user_id
+        <where>
+            c.deleted = 0
+            <if test="paramGoodsName!=null and paramGoodsName!=''">
+                and g.goods_name like CONCAT('%',#{paramGoodsName},'%')
+            </if>
+            <if test="paramCommentType!=null and paramCommentType!=''">
+                and c.comment_type = #{paramCommentType}
+            </if>
+            <if test="paramBeginTime != null and paramBeginTime.trim() != ''">
+                and c.create_time &gt; #{paramBeginTime}
+            </if>
+            <if test="paramEndTime != null and paramEndTime.trim() != ''">
+                and c.create_time &lt; #{paramEndTime}
+            </if>
+        </where>
+        order by goods_id desc
+        <if test="start!=null and limit!=null">
+            limit #{start},#{limit}
+        </if>
+    </select>
+
+    <select id="getTotalQstMallComment" parameterType="Map" resultType="int">
+        select count(*)
+        from tb_qst_mall_goods_comment c left join tb_qst_mall_goods_info g on c.goods_id = g.goods_id
+        left join tb_qst_mall_user u on c.user_id = u.user_id
+        <where>
+            c.deleted = 0
+            <if test="paramGoodsName!=null and paramGoodsName!=''">
+                and g.goods_name like CONCAT('%',#{paramGoodsName},'%')
+            </if>
+            <if test="paramCommentType!=null and paramCommentType!=''">
+                and c.comment_type = #{paramCommentType}
+            </if>
+            <if test="paramBeginTime != null and paramBeginTime.trim() != ''">
+                and c.create_time &gt; #{paramBeginTime}
+            </if>
+            <if test="paramEndTime != null and paramEndTime.trim() != ''">
+                and c.create_time &lt; #{paramEndTime}
+            </if>
+        </where>
+    </select>
+
+    <update id="deleteCommentByIds">
+        update tb_qst_mall_goods_comment
+        set deleted = 1
+        where id in
+        <foreach collection="commentIds" item="item" index="index"
+                 open="(" separator="," close=")">#{item}
+        </foreach>
+        or parent_comment_id in
+        <foreach collection="commentIds" item="item" index="index"
+                 open="(" separator="," close=")">#{item}
+        </foreach>
+    </update>
+
+    <select id="queryMallUserCommentByGoodsId" parameterType="Map" resultMap="mallCommentMap">
+        select
+        c.id as id, c.user_id as user_id, c.goods_id as goods_id, c.parent_comment_id as parent_comment_id,
+        c.comment_type as comment_type, c.content as content, c.deleted as deleted, c.create_time as create_time,
+        u.nick_name as user_name
+        from tb_qst_mall_goods_comment c left join tb_qst_mall_user u on c.user_id = u.user_id
+        <where>
+            c.deleted = 0
+            <if test="goodsId!=null and goodsId!=''">
+                and c.goods_id = #{goodsId}
+            </if>
+            <if test="commentType!=null and commentType!=''">
+                and c.comment_type = #{commentType}
+            </if>
+        </where>
+        order by goods_id desc
+    </select>
+
+    <select id="queryAdminUserCommentByParentId" parameterType="Map" resultMap="mallCommentMap">
+        select
+        c.id as id, c.user_id as user_id, c.goods_id as goods_id, c.parent_comment_id as parent_comment_id,
+        c.comment_type as comment_type, c.content as content, c.deleted as deleted, c.create_time as create_time,
+        u.nick_name as user_name
+        from tb_qst_mall_goods_comment c left join tb_qst_mall_admin_user u on c.user_id = u.admin_user_id
+        <where>
+            c.deleted = 0
+            <if test="mallUserCommentId!=null and mallUserCommentId!=''">
+                and c.parent_comment_id = #{mallUserCommentId}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+</mapper>

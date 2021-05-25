@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<header th:replace="admin/header::header-fragment">
+</header>
+<style>
+    .ui-jqgrid tr.jqgrow td {
+        white-space: normal !important;
+        height: auto;
+        vertical-align: text-top;
+        padding-top: 2px;
+    }
+
+    a {
+        color: #1baeae;
+        text-decoration: none;
+        background-color: transparent;
+        -webkit-text-decoration-skip: objects;
+    }
+
+    a:hover {
+        color: white;
+        background-color: #1baeae;
+    }
+</style>
+<body class="hold-transition sidebar-mini">
+<div class="wrapper">
+    <!-- 引入页面头header-fragment -->
+    <div th:replace="admin/header::header-nav"></div>
+    <!-- 引入工具栏sidebar-fragment -->
+    <div th:replace="admin/sidebar::sidebar-fragment(${path})"></div>
+    <!-- Content Wrapper. Contains 图标content -->
+    <div class="content-wrapper">
+        <!-- Content Header (图标header) -->
+        <div class="content-header">
+            <div class="container-fluid">
+            </div><!-- /.container-fluid -->
+        </div>
+        <!-- Main content -->
+        <div class="content">
+            <div class="container-fluid">
+                <div class="card card-primary card-outline">
+                    <div class="card-header">
+                        <h3 class="card-title">评价管理</h3>
+                    </div> <!-- /.card-body -->
+
+                    <div class="form-group" style="float:left;display:flex;width:100%;margin-top: 10px;margin-left: 10px;margin-bottom: 0px;">
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" id="paramGoodsName" placeholder="输入商品名称">
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="date" class="form-control" id="paramBeginTime" placeholder="请选择开始日期">
+                        </div>-
+                        <div class="col-sm-2">
+                            <input type="date" class="form-control" id="paramEndTime" placeholder="请选择结束日期">
+                        </div>
+                        <div class="col-sm-offset-2 col-sm-4">
+                            <button type="submit" class="btn btn-primary" onclick="reload()">搜索</button>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="grid-btn">
+                            <button class="btn btn-danger" onclick="deleteComment()"><i
+                                    class="fa fa-trash-o"></i>&nbsp;删除评价
+                            </button>
+                        </div>
+                        <table id="jqGrid" class="table table-bordered">
+                        </table>
+                        <div id="jqGridPager"></div>
+                    </div><!-- /.card-body -->
+                </div>
+            </div><!-- /.container-fluid -->
+        </div>
+        <div class="content">
+            <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                                    aria-hidden="true">×</span></button>
+                            <h4 class="modal-title" id="myModalLabel">评价回复</h4>
+                        </div>
+                        <div class="modal-body">
+                            <form>
+                                <div class="form-group" style="display: none;">
+                                    <label for="comment_id" class="control-label">评论id:</label>
+                                    <input type="text" class="form-control" readonly="readonly"  id="comment_id">
+                                </div>
+                                <div class="form-group">
+                                    <label for="comment_content" class="control-label">评价内容:</label>
+                                    <textarea class="form-control" readonly="readonly" id="comment_content"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recomment_content" class="control-label">回复内容:</label>
+                                    <textarea class="form-control" id="recomment_content"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                            <button type="button" class="btn btn-primary" onclick="saveComment()">保存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /.content-wrapper -->
+    <!-- 引入页脚footer-fragment -->
+    <div th:replace="admin/footer::footer-fragment"></div>
+</div>
+<!-- jQuery -->
+<script th:src="@{/admin/plugins/jquery/jquery.min.js}"></script>
+<!-- jQuery UI 1.11.4 -->
+<script th:src="@{/admin/plugins/jQueryUI/jquery-ui.min.js}"></script>
+<!-- Bootstrap 4 -->
+<script th:src="@{/admin/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<!-- AdminLTE App -->
+<script th:src="@{/admin/dist/js/adminlte.min.js}"></script>
+<!-- jqgrid -->
+<script th:src="@{/admin/plugins/jqgrid-5.3.0/jquery.jqGrid.min.js}"></script>
+<script th:src="@{/admin/plugins/jqgrid-5.3.0/grid.locale-cn.js}"></script>
+<script th:src="@{/admin/plugins/jqgrid-5.3.0/grid.locale-cn.js}"></script>
+<!-- sweetalert -->
+<script th:src="@{/admin/plugins/sweetalert/sweetalert.min.js}"></script>
+<script th:src="@{/admin/dist/js/public.js}"></script>
+
+<script type="text/javascript">
+    $(function () {
+        $("#jqGrid").jqGrid({
+            url: '/admin/goods/comment/list',
+            datatype: "json",
+            postData: {
+                paramGoodsName : $('#paramGoodsName').val(),
+                paramBeginTime : $('#paramBeginTime').val(),
+                paramEndTime : $('#paramEndTime').val()
+            },
+            colModel: [
+                {label: 'id', name: 'id', index: 'id', width: 50, key: true, hidden: true},
+                {label: '商品名称', name: 'goodsName', index: 'goodsName', width: 180},
+                {label: '会员名', name: 'userName', index: 'userName', width: 60},
+                {label: '评价内容', name: 'content', index: 'content', width: 180},
+                {label: '评价时间', name: 'createTime', index: 'createTime', width: 120},
+                {label: '操作', name: 'operator', index: 'operator', width: 120, formatter: operateFormatter}
+            ],
+            height: 760,
+            rowNum: 20,
+            rowList: [20, 50, 80],
+            styleUI: 'Bootstrap',
+            loadtext: '信息读取中...',
+            rownumbers: false,
+            rownumWidth: 20,
+            autowidth: true,
+            multiselect: true,
+            pager: "#jqGridPager",
+            jsonReader: {
+                root: "data.list",
+                page: "data.currPage",
+                total: "data.totalPage",
+                records: "data.totalCount"
+            },
+            prmNames: {
+                page: "page",
+                rows: "limit",
+                order: "order",
+            },
+            gridComplete: function () {
+                //隐藏grid底部滚动条
+                $("#jqGrid").closest(".ui-jqgrid-bdiv").css({"overflow-x": "hidden"});
+            }
+        });
+
+        $(window).resize(function () {
+            $("#jqGrid").setGridWidth($(".card-body").width());
+        });
+
+        function operateFormatter(cellvalue, options, rowObject) {
+            return "<a href=\'##\' onclick=toRecomment(" + rowObject.id + ",'" + rowObject.content + "')>回复评价</a>";
+        }
+
+        $(window).resize(function () {
+            $("#jqGrid").setGridWidth($(".card-body").width());
+        });
+
+    });
+
+    /**
+     * jqGrid重新加载
+     */
+    function reload() {
+        //initFlatPickr();
+        var page = $("#jqGrid").jqGrid('getGridParam', 'page');
+        $("#jqGrid").jqGrid('setGridParam', {
+            postData: {
+                paramGoodsName : $('#paramGoodsName').val(),
+                paramBeginTime : $('#paramBeginTime').val(),
+                paramEndTime : $('#paramEndTime').val()
+            },
+            page: page
+        }).trigger("reloadGrid");
+    }
+
+    /**
+     * 打开回复框
+     * @param orderId
+     */
+    function toRecomment(commentId, content) {
+        $("#recomment_content").val("");
+        $("#comment_id").val(commentId);
+        $("#comment_content").val(content);
+        $('#myModal').modal('show');
+    }
+
+    //保存评价回复
+    function saveComment(){
+        var commentId = $("#comment_id").val();
+        var content = $("#recomment_content").val();
+
+        $.ajax({
+            type: 'POST',//方法类型
+            url: '/admin/goods/recomment/save',
+            data: {
+                "commentId" : commentId,
+                "content" : content
+            },
+            success: function (result) {
+                if (result.resultCode == 200) {
+                    $('#myModal').modal('hide');
+                    swal("保存成功", {
+                        icon: "success",
+                    });
+                    reload();
+                } else {
+                    $('#orderInfoModal').modal('hide');
+                    swal(result.message, {
+                        icon: "error",
+                    });
+                }
+                ;
+            },
+            error: function () {
+                swal("操作失败", {
+                    icon: "error",
+                });
+            }
+        });
+    }
+
+    function deleteComment() {
+        var ids = getSelectedRows();
+        if (ids == null) {
+            return;
+        }
+        swal({
+            title: "确认弹框",
+            text: "确认要删除评价吗?",
+            icon: "warning",
+            buttons: true,
+            dangerMode: true,
+        }).then((flag) => {
+                if (flag) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/admin/goods/comment/delete",
+                        contentType: "application/json",
+                        data: JSON.stringify(ids),
+                        success: function (r) {
+                            if (r.resultCode == 200) {
+                                swal("删除成功", {
+                                    icon: "success",
+                                });
+                                $("#jqGrid").trigger("reloadGrid");
+                            } else {
+                                swal(r.message, {
+                                    icon: "error",
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+        );
+    }
+</script>
+</body>
+</html>
